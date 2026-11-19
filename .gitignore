@@ -1,0 +1,5 @@
+.pixi/
+artifacts/
+__pycache__/
+*.pyc
+.dagster_home
