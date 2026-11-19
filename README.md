@@ -9,9 +9,9 @@ repo) that answers two questions:
 
 There are five categorical, unordered partitions (`north`, `south`, `east`, `west`, `central`),
 defined once as `PARTITIONS = StaticPartitionsDefinition(...)`. Each partition materializes
-eight assets and fifteen checks — one pair per small metadata approach, four independently named
-checks yielded from a single `@multi_asset_check`, and four checks on the large-time-series
-asset.
+ten assets and eighteen checks — one pair per small metadata approach, four independently named
+checks yielded from a single `@multi_asset_check`, four checks on the large-time-series asset,
+and three checks across two cross-asset examples.
 
 ## Run it
 
@@ -51,6 +51,8 @@ partition's metadata; **Execution history** → `{}` opens any evaluation's meta
 | `timeseries_metadata_asset` / `timeseries_kpi_check` | Eight `net_energy_kwh__<segment>__<asset>` floats | Automatic plots from a few bytes of metadata |
 | `timeseries_metadata_asset` / `timeseries_json_check` | The same 11,520 rows as one row-oriented JSON payload | JSON size comparison |
 | `timeseries_metadata_asset` / `timeseries_columnar_json_check` | The same rows as column-oriented JSON (`{"column": [values...]}`) | Compact encoding for large series |
+| `orders_asset` / `orders_same_dates_as_prices` | One check owned by `orders_asset` with `additional_ins={"prices_asset": AssetIn("prices_asset")}` | Cross-asset check on one asset |
+| `orders_asset` / `orders_dates_match_prices` and `prices_asset` / `prices_dates_match_orders` | One `@multi_asset_check` with a spec per asset; yields one result per asset | Cross-asset checks on both assets |
 
 The `scalar_check` deliberately fails when peak net demand exceeds 1200 kW (`east`, whose
 synthetic shape uses March), so the partition grid shows both green and red states.
@@ -150,6 +152,29 @@ failures use a red icon/tag, and both read "Failed". The check list badge aggreg
 partitions (so a check can look failed while the latest partition passed); `Partitions` and
 `Execution history` show one evaluation per check per partition, which is the point: one
 function can emit several individually named checks, each with a small metadata payload.
+
+### Cross-asset checks
+
+`cross_asset.py` contains two working patterns, both comparing the dates covered by
+`orders_asset` and `prices_asset`:
+
+1. **`additional_ins` on one check** — `orders_same_dates_as_prices_check` is attached to
+   `orders_asset` but receives `prices_asset` as an extra input. It records one result under
+   orders; prices gets no check. Use this when the consistency assertion belongs to one asset.
+2. **`@multi_asset_check` with one spec per asset** — `orders_prices_date_checks` yields one
+   result for `orders_asset` and one for `prices_asset`. Both assets get their own check in the
+   UI, computed from the same comparison. Use this when either asset should carry the result.
+
+Both checks run once per partition. Because both assets share `PARTITIONS`, Dagster supplies
+each asset's value for the current partition with no explicit mapping. For differently
+partitioned assets, put a `partition_mapping` on the `AssetIn` (`TimeWindowPartitionMapping`,
+`StaticPartitionMapping`, `SpecificPartitionsPartitionMapping`, etc.); the default is
+`TimeWindowPartitionMapping` for two time-window definitions, `IdentityPartitionMapping`
+otherwise, and `AllPartitionMapping` when one side is unpartitioned.
+
+The comparison itself is a set/anti-join on the `date` column. The checks return missing/extra
+date counts and the date ranges, so a failure is diagnosable without dumping the frames. For
+large data, replace the Python sets with a polars anti-join.
 
 ### Where check metadata is visible
 
@@ -298,3 +323,5 @@ Captured from the running UI with Playwright + the installed Microsoft Edge. Eve
   encodings and their per-partition metadata.
 - `08__scalar-multi-check__*.png` — the five checks on `scalar_metadata_asset`, including pass,
   yellow warning-level failure, red error-level failure, and per-partition detail.
+- `09__cross-asset__*.png` — the two cross-asset date-consistency examples: check lists and
+  each pattern's Overview tab.

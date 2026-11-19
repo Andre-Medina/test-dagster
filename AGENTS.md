@@ -5,13 +5,14 @@ Dagster UI and persisted for downstream querying (the Vision UI). It is delibera
 from the Vision repo but pins the same stack: Dagster / dagster-webserver **1.13.30**, polars,
 plotly, matplotlib.
 
-Eight partitioned assets carry fifteen checks. Seven pairs each return one metadata shape (PNG
+Ten partitioned assets carry eighteen checks. Seven pairs each return one metadata shape (PNG
 markdown, SVG markdown, scalars, table, JSON, Plotly JSON, URL artifact). The scalar asset also
-has a `@multi_asset_check` that yields four individually named checks from one function. The
-eighth asset, an 11,520-row grouped timeseries, has four checks: the same rows as a table,
-row-oriented JSON, and column-oriented JSON, plus a KPI-only check with eight floats for
-automatic plotting. Findings and screenshots are in [README.md](README.md); read that before
-changing the experiments.
+has a `@multi_asset_check` that yields four individually named checks from one function. An
+11,520-row grouped timeseries has four checks: the same rows as a table, row-oriented JSON, and
+column-oriented JSON, plus a KPI-only check with eight floats for automatic plotting. Two
+cross-asset examples compare date coverage between `orders_asset` and `prices_asset`, one using
+`additional_ins` and one using `@multi_asset_check` with a spec per asset. Findings and
+screenshots are in [README.md](README.md); read that before changing the experiments.
 
 ## Commands
 
@@ -45,8 +46,10 @@ asset/check code are hit there — `dagster dev` runs code locations in a subpro
 src/test_dagster/
   data.py          deterministic half-hourly native/PV/net series per categorical partition,
                    plus the 4-segment x 2-network-asset grouped series (11,520 rows/partition)
+  partitions.py    the shared categorical StaticPartitionsDefinition (`PARTITIONS`)
+  cross_asset.py   two cross-asset date-consistency examples over orders/prices assets
   plots.py         matplotlib PNG/SVG bytes, base64 data URIs, Plotly figure dict
-  definitions.py   all assets, checks, the job, and defs
+  definitions.py   the metadata-shape assets/checks, the job, and defs; imports cross-asset
 scripts/
   run_partitions.py       materializes the job for every partition against DAGSTER_HOME
   query_check_metadata.py GraphQL client used by the Vision UI path; decodes images
@@ -93,6 +96,14 @@ screenshots/       UI captures referenced by README.md
 - `AssetCheckSeverity.WARN` vs `ERROR` does not change the pass/fail text, but the UI does
   render it: WARN failures get a yellow warning icon/tag, ERROR failures a red icon/tag.
   Severity only affects blocking behavior; these checks are non-blocking.
+- Cross-asset checks: `@dg.asset_check(..., additional_ins={"other": dg.AssetIn("other")})`
+  gives the owning check another asset's value; the result is recorded only on its own asset.
+  To record checks on both assets, use `@multi_asset_check` with a spec per asset (see
+  `cross_asset.py`).
+- Cross-asset partition mapping defaults: two time-window definitions ->
+  `TimeWindowPartitionMapping`; both partitioned otherwise -> `IdentityPartitionMapping`; one
+  side unpartitioned -> `AllPartitionMapping` (which may hand you a partition-key mapping).
+  Set `partition_mapping` on the `AssetIn` when the keys do not line up.
 - Long metadata labels (the 45-char `net_energy_kwh__<segment>__<asset>` keys) overlap their
   values in the asset Partitions metadata table; keep labels short if they appear there.
 - Screenshots use `NN__section__subject__detail.png` under `screenshots/`; keep the `__`

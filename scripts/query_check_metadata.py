@@ -29,6 +29,9 @@ CHECKS = [
     ("timeseries_metadata_asset", "timeseries_kpi_check"),
     ("timeseries_metadata_asset", "timeseries_json_check"),
     ("timeseries_metadata_asset", "timeseries_columnar_json_check"),
+    ("orders_asset", "orders_same_dates_as_prices"),
+    ("orders_asset", "orders_dates_match_prices"),
+    ("prices_asset", "prices_dates_match_orders"),
 ]
 
 QUERY = """

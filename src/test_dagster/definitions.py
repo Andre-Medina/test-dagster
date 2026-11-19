@@ -20,21 +20,20 @@ from pathlib import Path
 import dagster as dg
 import polars as pl
 
+from test_dagster.cross_asset import CROSS_ASSETS, CROSS_CHECKS, CROSS_CHECK_KEYS
 from test_dagster.data import (
-    CATEGORIES,
     load_partition_series,
     load_segment_series,
     segment_records,
     summarise,
 )
+from test_dagster.partitions import PARTITIONS
 from test_dagster.plots import (
     plotly_figure_dict,
     raster_bytes,
     raster_data_uri,
     vector_data_uri,
 )
-
-PARTITIONS = dg.StaticPartitionsDefinition(list(CATEGORIES))
 
 CHECK_TABLE_SCHEMA = dg.TableSchema(
     columns=[
@@ -561,6 +560,7 @@ CHECK_KEYS = [
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_kpi_check"),
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_json_check"),
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_columnar_json_check"),
+    *CROSS_CHECK_KEYS,
 ]
 
 metadata_job = dg.define_asset_job(
@@ -578,6 +578,7 @@ defs = dg.Definitions(
         plotly_metadata_asset,
         url_artifact_asset,
         timeseries_metadata_asset,
+        *CROSS_ASSETS,
     ],
     asset_checks=[
         png_markdown_check,
@@ -592,6 +593,7 @@ defs = dg.Definitions(
         timeseries_kpi_check,
         timeseries_json_check,
         timeseries_columnar_json_check,
+        *CROSS_CHECKS,
     ],
     jobs=[metadata_job],
 )

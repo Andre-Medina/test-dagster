@@ -75,3 +75,13 @@ the folder sorted by section. Full findings are in the [top-level README](../REA
 | ERROR failure | Partition detail |
 | :---: | :---: |
 | ![ERROR failure](08__scalar-multi-check__overview__error-fail.png) | ![Partition detail](08__scalar-multi-check__partitions__east.png) |
+
+## 09 — Cross-asset date-consistency checks
+
+| Orders asset checks | Prices asset checks |
+| :---: | :---: |
+| ![Orders checks](09__cross-asset__orders-checks-list.png) | ![Prices checks](09__cross-asset__prices-checks-list.png) |
+
+| `additional_ins` check | `multi_asset_check` check |
+| :---: | :---: |
+| ![additional_ins](09__cross-asset__additional-ins-overview.png) | ![multi_asset_check](09__cross-asset__multi-check-overview.png) |
