@@ -61,6 +61,17 @@ def load_partition_series(partition_key: str) -> pl.DataFrame:
     )
 
 
+def load_daily_profile(partition_key: str) -> pl.DataFrame:
+    """Return 24 mean hourly net-demand points for a categorical partition."""
+    return (
+        load_partition_series(partition_key)
+        .with_columns(pl.col("timestamp").dt.hour().alias("hour"))
+        .group_by("hour")
+        .agg(pl.col("net_kw").mean())
+        .sort("hour")
+    )
+
+
 def load_segment_series(partition_key: str) -> pl.DataFrame:
     """Return the partition series split across every customer segment and network asset."""
     base = load_partition_series(partition_key)

@@ -5,14 +5,16 @@ Dagster UI and persisted for downstream querying (the Vision UI). It is delibera
 from the Vision repo but pins the same stack: Dagster / dagster-webserver **1.13.30**, polars,
 plotly, matplotlib.
 
-Ten partitioned assets carry eighteen checks. Seven pairs each return one metadata shape (PNG
+Eleven partitioned assets carry nineteen checks. Seven pairs each return one metadata shape (PNG
 markdown, SVG markdown, scalars, table, JSON, Plotly JSON, URL artifact). The scalar asset also
 has a `@multi_asset_check` that yields four individually named checks from one function. An
 11,520-row grouped timeseries has four checks: the same rows as a table, row-oriented JSON, and
 column-oriented JSON, plus a KPI-only check with eight floats for automatic plotting. Two
 cross-asset examples compare date coverage between `orders_asset` and `prices_asset`, one using
-`additional_ins` and one using `@multi_asset_check` with a spec per asset. Findings and
-screenshots are in [README.md](README.md); read that before changing the experiments.
+`additional_ins` and one using `@multi_asset_check` with a spec per asset. `minimal_svg_check`
+returns a hand-built 24-point SVG (741 bytes) intended as the smallest useful chart payload.
+Findings and screenshots are in [README.md](README.md); read that before changing the
+experiments.
 
 ## Commands
 
@@ -45,10 +47,11 @@ asset/check code are hit there — `dagster dev` runs code locations in a subpro
 ```text
 src/test_dagster/
   data.py          deterministic half-hourly native/PV/net series per categorical partition,
-                   plus the 4-segment x 2-network-asset grouped series (11,520 rows/partition)
+                   the 4-segment x 2-network-asset grouped series (11,520 rows/partition), and
+                   the 24-point daily profile
   partitions.py    the shared categorical StaticPartitionsDefinition (`PARTITIONS`)
   cross_asset.py   two cross-asset date-consistency examples over orders/prices assets
-  plots.py         matplotlib PNG/SVG bytes, base64 data URIs, Plotly figure dict
+  plots.py         matplotlib PNG/SVG bytes, base64 data URIs, minimal hand-built SVG, Plotly
   definitions.py   the metadata-shape assets/checks, the job, and defs; imports cross-asset
 scripts/
   run_partitions.py       materializes the job for every partition against DAGSTER_HOME
@@ -71,8 +74,12 @@ screenshots/       UI captures referenced by README.md
   with `AssetSelection.all() | AssetSelection.checks(*CHECK_KEYS)`.
 - Metadata entry names in GraphQL: `MarkdownMetadataEntry` exposes `mdStr`, ints/floats expose
   `intRepr` / `floatRepr`, tables expose `table.records` (JSON strings) and `table.schema`.
-- Large markdown values (>1,000 chars) render behind `[Show Markdown]` in the UI; embedded
-  base64 images always exceed that, so a click is required. SVG is ~25% smaller than PNG here.
+- **All** check markdown renders behind `[Show Markdown]` in 1.13.30 (`AssetCheckOverview` does
+  not pass `expandSmallValues`), even a ~1 KB minimal SVG. Asset materialization metadata passes
+  `expandSmallValues=true`, so sub-1,000-char markdown there renders inline.
+- Embedded base64 images always exceed 1,000 chars; SVG is ~25% smaller than PNG here. The
+  hand-built minimal SVG is 741 raw bytes / 1,014 as a data URI because it has only 24 points,
+  two axes, four axis-end labels, and two labelled global extrema.
 - Raw `plotly.graph_objects.Figure` metadata raises `DagsterInvalidMetadata`; serialise to JSON.
   Dagster 1.13.30 has no native plotly/vega renderer — numeric metadata *is* auto-charted in the
   check's "Plots" section.

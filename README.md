@@ -9,9 +9,9 @@ repo) that answers two questions:
 
 There are five categorical, unordered partitions (`north`, `south`, `east`, `west`, `central`),
 defined once as `PARTITIONS = StaticPartitionsDefinition(...)`. Each partition materializes
-ten assets and eighteen checks — one pair per small metadata approach, four independently named
-checks yielded from a single `@multi_asset_check`, four checks on the large-time-series asset,
-and three checks across two cross-asset examples.
+eleven assets and nineteen checks — one pair per small metadata approach, four independently
+named checks yielded from a single `@multi_asset_check`, four checks on the large-time-series
+asset, three checks across two cross-asset examples, and one hand-built minimal SVG.
 
 ## Run it
 
@@ -53,6 +53,7 @@ partition's metadata; **Execution history** → `{}` opens any evaluation's meta
 | `timeseries_metadata_asset` / `timeseries_columnar_json_check` | The same rows as column-oriented JSON (`{"column": [values...]}`) | Compact encoding for large series |
 | `orders_asset` / `orders_same_dates_as_prices` | One check owned by `orders_asset` with `additional_ins={"prices_asset": AssetIn("prices_asset")}` | Cross-asset check on one asset |
 | `orders_asset` / `orders_dates_match_prices` and `prices_asset` / `prices_dates_match_orders` | One `@multi_asset_check` with a spec per asset; yields one result per asset | Cross-asset checks on both assets |
+| `minimal_svg_asset` / `minimal_svg_check` | 24-point daily profile as a hand-built SVG in markdown + raw byte count | Smallest useful chart payload |
 
 The `scalar_check` deliberately fails when peak net demand exceeds 1200 kW (`east`, whose
 synthetic shape uses March), so the partition grid shows both green and red states.
@@ -107,6 +108,38 @@ Conclusions:
   typed table of KPIs (tens of rows) and a handful of numeric group KPIs in check metadata.
 - **If the series must live in metadata, use columnar JSON** (or a compact encoding such as
   dictionary-encoded dimensions) rather than `MetadataValue.table` or row-oriented JSON.
+
+### Minimal SVG: 24 points, no matplotlib
+
+`minimal_svg_check` builds the SVG by hand from a 24-point daily profile
+(`load_daily_profile`: mean net demand per hour of day). The SVG contains only:
+
+- one `<polyline>` with the 24 points,
+- one `<path>` holding both axis lines,
+- two `<text>` labels for the min and max points.
+
+There is no legend, no colour palette, no grid, no axis tick labels, and no matplotlib wrapper.
+
+| Payload | Size |
+| :--- | ---: |
+| Raw SVG | 741 bytes |
+| Base64 data URI | 1,014 bytes |
+| Markdown entry (`![...](data:...)`) | 1,040 bytes |
+| Existing matplotlib SVG (1,440 points) | 93–95 KB |
+| Existing matplotlib PNG (1,440 points) | 123–125 KB |
+
+The SVG labels the x-axis minimum/maximum (`0h`, `23h`), the y-axis minimum/maximum, and the
+global extrema with both coordinates (`max 1078@18h`, `min 208@11h`). It remains ~125× smaller
+than the matplotlib SVG.
+
+**Check metadata still shows `[Show Markdown]`**: `AssetCheckOverview` does not pass
+`expandSmallValues`, so all markdown in the check panel is collapsed in 1.13.30, even when the
+string is under 1,000 characters. One click opens a dialog with the SVG at native size. Asset
+materialization metadata *does* pass `expandSmallValues=true`, so attaching the same entry with
+`context.add_output_metadata` would render it inline in the asset Overview instead. The raw SVG
+is a single 24-coordinate string, so a downstream UI can also extract it from `mdStr` and
+restyle or rescale it without touching the original data. The trade-off is that it only conveys
+the daily shape and labelled extrema—not the full half-hourly series.
 
 ### Automatic plots: checks use time, assets use partitions
 
@@ -325,3 +358,6 @@ Captured from the running UI with Playwright + the installed Microsoft Edge. Eve
   yellow warning-level failure, red error-level failure, and per-partition detail.
 - `09__cross-asset__*.png` — the two cross-asset date-consistency examples: check lists and
   each pattern's Overview tab.
+- `10__minimal-svg__*.png` — the 24-point hand-built SVG: check Overview with and without the
+  dialog, `central` and `north` partition detail, execution history, and 2× standalone charts
+  showing the axis/extrema labels.

@@ -25,6 +25,7 @@ CHECKS = [
     ("json_metadata_asset", "json_check"),
     ("plotly_metadata_asset", "plotly_check"),
     ("url_artifact_asset", "url_artifact_check"),
+    ("minimal_svg_asset", "minimal_svg_check"),
     ("timeseries_metadata_asset", "timeseries_table_check"),
     ("timeseries_metadata_asset", "timeseries_kpi_check"),
     ("timeseries_metadata_asset", "timeseries_json_check"),

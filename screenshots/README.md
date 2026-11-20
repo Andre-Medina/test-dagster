@@ -85,3 +85,25 @@ the folder sorted by section. Full findings are in the [top-level README](../REA
 | `additional_ins` check | `multi_asset_check` check |
 | :---: | :---: |
 | ![additional_ins](09__cross-asset__additional-ins-overview.png) | ![multi_asset_check](09__cross-asset__multi-check-overview.png) |
+
+## 10 — Minimal 24-point SVG
+
+| Check Overview (metadata) | Check Overview (SVG dialog) |
+| :---: | :---: |
+| ![Minimal SVG metadata](10__minimal-svg__check-overview__metadata.png) | ![Minimal SVG dialog](10__minimal-svg__check-overview.png) |
+
+| Partitions, central | Central SVG dialog |
+| :---: | :---: |
+| ![Central partition](10__minimal-svg__check-partitions__central.png) | ![Central SVG](10__minimal-svg__check-partitions__central__dialog.png) |
+
+| Partitions, north | North SVG dialog |
+| :---: | :---: |
+| ![North partition](10__minimal-svg__check-partitions__north.png) | ![North SVG](10__minimal-svg__check-partitions__north__dialog.png) |
+
+| Execution history | Central chart, 2× |
+| :---: | :---: |
+| ![Execution history](10__minimal-svg__check-execution-history.png) | ![Central chart](10__minimal-svg__chart__central.png) |
+
+| North chart, 2× |
+| :---: |
+| ![North chart](10__minimal-svg__chart__north.png) |

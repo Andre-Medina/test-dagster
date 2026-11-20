@@ -22,6 +22,7 @@ import polars as pl
 
 from test_dagster.cross_asset import CROSS_ASSETS, CROSS_CHECKS, CROSS_CHECK_KEYS
 from test_dagster.data import (
+    load_daily_profile,
     load_partition_series,
     load_segment_series,
     segment_records,
@@ -29,6 +30,7 @@ from test_dagster.data import (
 )
 from test_dagster.partitions import PARTITIONS
 from test_dagster.plots import (
+    minimal_svg_data_uri,
     plotly_figure_dict,
     raster_bytes,
     raster_data_uri,
@@ -424,6 +426,38 @@ def url_artifact_check(
     )
 
 
+# ---------------------------------------------------------- MINIMAL SVG
+
+
+@dg.asset(partitions_def=PARTITIONS, group_name="minimal_svg", compute_kind="polars")
+def minimal_svg_asset(context: dg.AssetExecutionContext) -> pl.DataFrame:
+    """24 hourly points of the partition's mean daily profile."""
+    return load_daily_profile(context.partition_key)
+
+
+@dg.asset_check(
+    asset=minimal_svg_asset,
+    partitions_def=PARTITIONS,
+    description="24-point daily profile as a hand-built minimal SVG.",
+)
+def minimal_svg_check(
+    context: dg.AssetCheckExecutionContext, minimal_svg_asset: pl.DataFrame
+) -> dg.AssetCheckResult:
+    """Return the daily profile as the smallest useful SVG in markdown metadata."""
+    data_uri, svg_bytes = minimal_svg_data_uri(minimal_svg_asset)
+    return dg.AssetCheckResult(
+        passed=True,
+        metadata={
+            "plot": dg.MetadataValue.md(
+                f"![Daily profile {context.partition_key}]({data_uri})"
+            ),
+            "svg_bytes": dg.MetadataValue.int(svg_bytes),
+            "points": dg.MetadataValue.int(minimal_svg_asset.height),
+        },
+        description=f"Minimal SVG for {context.partition_key}",
+    )
+
+
 # ------------------------------------------------------- GROUPED TIMESERIES
 
 
@@ -542,6 +576,7 @@ TABLE_ASSET = table_metadata_asset
 JSON_ASSET = json_metadata_asset
 PLOTLY_ASSET = plotly_metadata_asset
 URL_ASSET = url_artifact_asset
+MINIMAL_ASSET = minimal_svg_asset
 TIMESERIES_ASSET = timeseries_metadata_asset
 
 CHECK_KEYS = [
@@ -556,6 +591,7 @@ CHECK_KEYS = [
     dg.AssetCheckKey(json_metadata_asset.key, "json_check"),
     dg.AssetCheckKey(plotly_metadata_asset.key, "plotly_check"),
     dg.AssetCheckKey(url_artifact_asset.key, "url_artifact_check"),
+    dg.AssetCheckKey(minimal_svg_asset.key, "minimal_svg_check"),
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_table_check"),
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_kpi_check"),
     dg.AssetCheckKey(timeseries_metadata_asset.key, "timeseries_json_check"),
@@ -577,6 +613,7 @@ defs = dg.Definitions(
         json_metadata_asset,
         plotly_metadata_asset,
         url_artifact_asset,
+        minimal_svg_asset,
         timeseries_metadata_asset,
         *CROSS_ASSETS,
     ],
@@ -589,6 +626,7 @@ defs = dg.Definitions(
         json_check,
         plotly_check,
         url_artifact_check,
+        minimal_svg_check,
         timeseries_table_check,
         timeseries_kpi_check,
         timeseries_json_check,
